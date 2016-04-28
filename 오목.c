@@ -1,4 +1,5 @@
-#include<stdio.h>
+#include <stdio.h>
+#include <Windows.h>
 #define size 20
 
 void TurnChange(char *ptr)
@@ -14,16 +15,28 @@ void ShowPlate(char(*plate)[20])
 	오목판을 보여주는 함수
 	*/
 	int x, y;
+	HANDLE hnd = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	system("cls");
+
+	if (plate[0][0] == 'O')				//'O'의 턴이라면
+		SetConsoleTextAttribute(hnd, 0x71); //배경과 글자색 바꿈(옅은 회색, 짙은 파랑)
+	else								//'X'의 턴이라면
+		SetConsoleTextAttribute(hnd, 0x74); //배경과 글자색 바꿈(옅은 회색, 짙은 빨강)
 	printf("%-3c", plate[0][0]);		//턴 출력
+
+	SetConsoleTextAttribute(hnd, 0x8F);	//배경과 글자색 바꿈(짙은 회색, 검정)
 	for (x = 1; x < size; x++)
 		printf("%-3d", x);				//1부터 size(20) 전까지 숫자로 출력
 	putchar('\n');
 
 	for (y = 1; y < size; y++)			//1부터 size(20) 전까지 
 	{
+		SetConsoleTextAttribute(hnd, 0x8F);//배경과 글자색 바꿈(짙은 회색, 검정)
 		printf("%-3d", plate[y][0]);    //제일 앞에를 숫자로 출력
 		for (x = 1; x < size; x++)		//1부터 size(20) 전까지
 		{
+			SetConsoleTextAttribute(hnd, 0x0F);//배경과 글자색 바꿈(검정, 흰색)
 			printf("%-3c", plate[y][x]);//바둑판 출력
 		}
 		putchar('\n');
@@ -53,7 +66,7 @@ int WinOrNot(char plate[][20], int y, int x)
 			trig = 0;					//트리거를 0으로 초기화
 
 		if (trig >= 5)					//검사했을 때 트리거가 5보다 크다면
-			return Win(plate[0][0]);	//Win() 실행
+			return 1;
 	}
 	trig = 0;							//트리거 0으로 초기화
 
@@ -65,7 +78,7 @@ int WinOrNot(char plate[][20], int y, int x)
 			trig = 0;					//트리거를 0으로 초기화
 		
 		if (trig >= 5)					//검사했을 때 트리거가 5보다 크다면
-			return Win(plate[0][0]);	//Win() 실행
+			return 1;
 	}
 	trig = 0;							//트리거 0으로 초기화
 
@@ -82,7 +95,7 @@ int WinOrNot(char plate[][20], int y, int x)
 			trig = 0;					//트리거 초기화
 
 		if (trig >= 5)					//검사했을 때 트리거가 5보다 크다면
-			return Win(plate[0][0]);	//Win() 실행
+			return 1;
 		j++;	
 		i++;
 	}
@@ -97,7 +110,7 @@ int WinOrNot(char plate[][20], int y, int x)
 			trig = 0;					//트리거 0으로 초기화
 
 		if (trig >= 5)					//검사했을 때 트리거가 5보다 크다면
-			return Win(plate[0][0]);	//Win() 실행
+			return 1;
 		j++;
 	}
 	return 0;
@@ -106,7 +119,8 @@ int main(void)
 {
 	char plate[20][20];					//오목판 배열
 	int x, y;
-	
+	int trig = 0;
+
 	for(x=1; x<size; x++)				//1부터 19까지 
 		plate[0][x] = x;				//제일 윗줄에 1~19 순서대로 대입
 	for(y=1; y<size; y++)				//1부터 19까지
@@ -120,18 +134,23 @@ int main(void)
 	while(1)
 	{
 		ShowPlate(plate);				//오목판을 보여줌
-
+		if (trig == 1)					//오류 메세지 출력 트리거가 활성화돼있으면
+		{
+			printf("잘못된 좌표 입력, 턴 넘어감 \n");//오류 메세지 출력
+			trig = 0;					//트리거 비활성화
+		}
 		printf("좌표? ");
 		scanf("%d %d", &x, &y);			//좌표 입력
 
-		if(plate[y][x] != '.')			//좌표가 비어있지 않으면
-			printf("잘못된 좌표 입력, 턴 넘어감 \n");//넘어감
+		if (plate[y][x] != '.')			//좌표가 비어있지 않으면
+			trig = 1;					//오류 메세지 출력 트리거 활성화
 		else							//비어있으면
 			plate[y][x] = plate[0][0];  //돌을 놓음
 
 		if( WinOrNot(plate, y, x) )		//만약 게임이 끝났으면
 		{
 			ShowPlate(plate);			//바둑판을 보여주고
+			Win(plate[0][0]);			//Win() 실행
 			return 0;					//끝냄
 		}
 		TurnChange(&plate[0][0]);		//턴 바꿈
