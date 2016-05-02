@@ -20,7 +20,19 @@ void gotoxy(int x, int y)
 	HANDLE hnd = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleCursorPosition(hnd, pos);	//커서 좌표를 옮김
 }
+void clearStatusBar(void)
+{
+	int i;
+	//gotoxy(40, 20);
+	//for (i = 40; i > 0; i--)
+	//	putchar('\b');
 
+	gotoxy(0, 21);
+	printf("                              ");
+
+	gotoxy(0, 22);
+	printf("                              \n");
+}
 void TurnChange(char *ptr)
 {
 	/*
@@ -85,7 +97,23 @@ int Win(char c)
 
 	이긴 플레이어(O 또는 X)를 인자로 받음
 	*/
-	printf("=======%c 승!======= \n",c);
+	//printf("=======%c 승!======= \n",c);
+	HANDLE hnd = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(hnd, 0x02);
+	printf("=======");
+
+	if (c == 'O')
+		SetConsoleTextAttribute(hnd, 0x09);
+	else
+		SetConsoleTextAttribute(hnd, 0x0C);
+	printf("%c 승!", c);
+
+	SetConsoleTextAttribute(hnd, 0x02);
+	printf("=======");
+
+	SetConsoleTextAttribute(hnd, 0x0F);
+	putchar('\n');
+
 	return 1;
 }
 int WinOrNot(char plate[][20], int y, int x)
@@ -256,6 +284,7 @@ int main(void)
 	while(1)
 	{
 		trig = move(plate);				//트리거에 move()가 반환한 값 저장
+		clearStatusBar();
 
 		switch (trig)
 		{
