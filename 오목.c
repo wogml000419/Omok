@@ -22,15 +22,15 @@ void gotoxy(int x, int y)
 }
 void clearStatusBar(void)
 {
+	/*
+	오목판 밑의 상태창을 지우는 함수
+	*/
 	int i;
-	//gotoxy(40, 20);
-	//for (i = 40; i > 0; i--)
-	//	putchar('\b');
 
-	gotoxy(0, 21);
+	gotoxy(0, 21);						//"잘못된 좌표 ~ 넘어감" 부분 지움
 	printf("                              ");
 
-	gotoxy(0, 22);
+	gotoxy(0, 22);						//좌표 부분 지움
 	printf("                              \n");
 }
 void TurnChange(char *ptr)
@@ -97,21 +97,20 @@ int Win(char c)
 
 	이긴 플레이어(O 또는 X)를 인자로 받음
 	*/
-	//printf("=======%c 승!======= \n",c);
 	HANDLE hnd = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleTextAttribute(hnd, 0x02);
+	SetConsoleTextAttribute(hnd, 0x02);	//배경색과 글자색 바꿈(검정, 초록)
 	printf("=======");
 
-	if (c == 'O')
-		SetConsoleTextAttribute(hnd, 0x09);
-	else
-		SetConsoleTextAttribute(hnd, 0x0C);
-	printf("%c 승!", c);
+	if (c == 'O')						//문자가 'O'라면
+		SetConsoleTextAttribute(hnd, 0x09);//배경색과 글자색 바꿈(검정, 파랑)
+	else								//문자가 'X'라면
+		SetConsoleTextAttribute(hnd, 0x0C);//배경색과 글자색 바꿈(검정, 빨강)
+	printf("%c 승!", c);					//출력
 
-	SetConsoleTextAttribute(hnd, 0x02);
+	SetConsoleTextAttribute(hnd, 0x02);	//배경색과 글자색 바꿈(검정, 초록)
 	printf("=======");
 
-	SetConsoleTextAttribute(hnd, 0x0F);
+	SetConsoleTextAttribute(hnd, 0x0F); //배경색과 글자색 복구(검정, 하양)
 	putchar('\n');
 
 	return 1;
@@ -254,14 +253,14 @@ while (1)
 	}
 
 		
-	if (x < 1*3)
-		x = 19 * 3;
-	else if (x > 19 * 3)
-		x = 1 * 3;
-	if (y < 1)
-		y = 19;
-	else if (y > 19)
-		y = 1;
+	if (x < 1*3)							//커서가 왼쪽 경계를 넘어가면
+		x = 19 * 3;							//오른쪽 끝으로 이동
+	else if (x > 19 * 3)					//커서가 오른쪽 경계를 넘어가면
+		x = 1 * 3;							//왼쪽 끝으로 이동
+	if (y < 1)								//커서가 위쪽 경계를 넘어가면
+		y = 19;								//아래쪽 끝으로 이동
+	else if (y > 19)						//커서가 아래쪽 경계를 넘어가면
+		y = 1;								//위쪽 끝으로 이동
 }
 }
 int main(void)
