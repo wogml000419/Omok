@@ -9,6 +9,52 @@
 #define DOWN 80
 #define ENTER 13
 
+void gotoxy(int x, int y);							//커서의 좌표를 옮기는 함수
+void clearStatusBar(void);							//오목판 밑의 상태창을 지우는 함수
+void ShowCursorPos(int x, int y, char ch, int trig);//커서가 가리키는 위치를 표시하는 함수
+void TurnChange(char *ptr);							//왼쪽 위에 표시되는 턴을 바꾸는 함수
+void ShowPlate(char(*plate)[20]);					//오목판을 보여주는 함수
+int Win(char c);									//이겼을 때 출력하는 함수
+int WinOrNot(char plate[][20], int y, int x);		//끝났는지 아닌지 판단하는 함수
+int move(char plate[][20]);							//이동과 돌 놓기를 구현한 함수
+int main(void)
+{
+	HANDLE hnd = GetStdHandle(STD_OUTPUT_HANDLE);
+	char plate[20][20];					//오목판 배열
+	int x, y;
+	int trig = 0;
+
+	for(x=1; x<size; x++)				//1부터 19까지 
+		plate[0][x] = x;				//제일 윗줄에 1~19 순서대로 대입
+	for(y=1; y<size; y++)				//1부터 19까지
+		plate[y][0] = y;				//제일 왼쪽에 1~19 순서대로 대입
+	for(x=1; x<size; x++)
+		for(y=1; y<size; y++)
+			plate[y][x] = '.';			//나머지는 다 .으로 채움
+
+	plate[0][0] = 'O';					//턴은 O 먼저 시작
+	ShowPlate(plate);					//오목판을 보여줌
+	gotoxy(10 * 3 + 1, 10);				//(10, 10) 지점으로 커서 이동
+	while(1)
+	{
+		trig = move(plate);				//트리거에 move()가 반환한 값 저장
+		clearStatusBar();
+
+		switch (trig)
+		{
+		case 1:							//오류 메세지 출력 트리거가 활성화돼있으면
+			gotoxy(0, 21);				//출력할 장소로 이동한 뒤
+			SetConsoleTextAttribute(hnd, 0x04);//배경, 글자색 변경(검정, 진한 빨강)
+			printf("잘못된 좌표입니다! \n");//오류 메세지 출력
+			SetConsoleTextAttribute(hnd, 0x0F);//배경, 글자색 복구(검정, 하양)
+			trig = 0;					//트리거 비활성화
+			break;
+		case -1:						//-1이 반환되었으면
+			return 0;					//종료
+		}
+		TurnChange(&plate[0][0]);		//턴 바꿈
+	}
+}
 void gotoxy(int x, int y)
 {
 	/*
@@ -17,7 +63,8 @@ void gotoxy(int x, int y)
 	옮길 x좌포와 y좌표를 인자로 받음
 	*/
 	COORD pos = { x, y };				//x와 y좌표를 구조체에 할당
-	HANDLE hnd = GetStdHandle(STD_OUTPUT_HANDLE);
+	static HANDLE hnd;
+	hnd = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleCursorPosition(hnd, pos);	//커서 좌표를 옮김
 }
 void clearStatusBar(void)
@@ -25,13 +72,51 @@ void clearStatusBar(void)
 	/*
 	오목판 밑의 상태창을 지우는 함수
 	*/
-	int i;
-
-	gotoxy(0, 21);						//"잘못된 좌표 ~ 넘어감" 부분 지움
+	gotoxy(0, 21);						//"잘못된 좌표입니다!" 부분 지움
 	printf("                              ");
 
 	gotoxy(0, 22);						//좌표 부분 지움
 	printf("                              \n");
+}
+void ShowCursorPos(int x, int y, char ch, int trig)
+{
+	/*
+	커서가 가리키는 위치를 표시하는 함수
+
+	x, y좌표와 그 좌표에 출력되는 문자, 표시 생성/삭제 여부 트리거를 인자로 받음
+	*/
+	static HANDLE hnd;
+	hnd = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	if (trig)									//트리거가 1이면 배경을 노랗게 바꿈
+	{
+		gotoxy(x + 2, y);						//출력될 곳 앞으로 이동
+		putchar('\b');							//한 칸 지움
+		SetConsoleTextAttribute(hnd, 0xE0);		//배경, 글자색 설정(노랑, 검정)
+		putchar(ch);							//문자 출력
+		gotoxy(x + 1, y);						//출력된 문자의 좌표로 이동
+		SetConsoleTextAttribute(hnd, 0x0F);		//배경, 글자색 복구(검정, 하양)
+	}
+	else										//트리거가 0이면 원상복구
+	{
+		gotoxy(x + 2, y);						//출력된 곳 앞으로 이동
+		putchar('\b');							//한 칸 지움
+		switch (ch)
+		{
+		case '.':								//문자가 '.'이면
+			SetConsoleTextAttribute(hnd, 0x0F); //배경, 글자색설정(검정, 하양)
+			break;
+		case 'O':								//문자가 'O'면
+			SetConsoleTextAttribute(hnd, 0x09); //배경, 글자색 설정(검정, 파랑)
+			break;
+		case 'X':								//문자가 'X'면
+			SetConsoleTextAttribute(hnd, 0x0C); //배경, 글자색 설정(검정, 빨강)
+			break;
+		}
+		putchar(ch);							//문자 출력
+		gotoxy(x + 1, y);						//출력된 문자의 좌표로 이동
+		SetConsoleTextAttribute(hnd, 0x0F);		//배경, 글자색 복구(검정, 햐양)
+	}
 }
 void TurnChange(char *ptr)
 {
@@ -78,11 +163,11 @@ void ShowPlate(char(*plate)[20])
 		printf("%2d ", x);				//1부터 size(20) 전까지 숫자로 출력
 	putchar('\n');
 
-	for (y = 1; y < size; y++)			
+	for (y = 1; y < size; y++)
 	{
 		SetConsoleTextAttribute(hnd, 0x8F);//배경과 글자색 바꿈(짙은 회색, 검정)
 		printf("%2d ", plate[y][0]);    //제일 앞에는 숫자로 출력
-		for (x = 1; x < size; x++)		
+		for (x = 1; x < size; x++)
 		{
 			SetConsoleTextAttribute(hnd, 0x0F);//배경과 글자색 바꿈(검정, 흰색)
 			printf("%2c ", plate[y][x]);//바둑판 출력
@@ -144,7 +229,7 @@ int WinOrNot(char plate[][20], int y, int x)
 			trig++;						//트리거++
 		else							//다르다면
 			trig = 0;					//트리거를 0으로 초기화
-		
+
 		if (trig >= 5)					//검사했을 때 트리거가 5보다 크다면
 			return 1;
 	}
@@ -153,7 +238,7 @@ int WinOrNot(char plate[][20], int y, int x)
 	j = y - 4;							//대각선으로 가기 때문에, j를 미리 초기화
 	for (i = x - 4; i <= x + 4; )  //오른쪽 아래 대각선
 	{
-		
+
 		if (plate[y][x] == plate[j][i])	//처음 시작과 현재 위치가 같다면
 			trig++;						//트리거++
 		else							//다르다면
@@ -164,7 +249,7 @@ int WinOrNot(char plate[][20], int y, int x)
 
 		if (trig >= 5)					//검사했을 때 트리거가 5보다 크다면
 			return 1;
-		j++;	
+		j++;
 		i++;
 	}
 	trig = 0;							//트리거 0으로 초기화
@@ -197,104 +282,62 @@ int move(char plate[][20])
 	static int y = 10;
 	static HANDLE hnd;
 	hnd = GetStdHandle(STD_OUTPUT_HANDLE);
-	
-while (1)
-{
-	gotoxy(0, 22);							//(0, 22)지점으로 이동해서
-	printf("좌표 : %-2d %-2d", x / 3, y);	//출력
 
-	gotoxy(x+1, y);							//현재 좌표로 이동
-		
-	clt = _getch();					//키보드로 입력을 받음
-	if (clt == -32 || clt == 0)		//입력받은 키보드가 특수 키코드이면
-		clt = _getch();				//한번 더 읽어야 제대로 된 값 받음
-		
-	switch (clt)
+	while (1)
 	{
-	case LEFT:						//왼쪽키이면
-		x -= 3;						//왼쪽으로 세 칸(한 블럭)이동
-		break;
-	case RIGHT:						//오른쪽 키이면
-		x += 3;						//오른쪽으로 세 칸(한 블럭)이동
-		break;
-	case UP:						//위쪽 키이면
-		y -= 1;						//위로 한 칸 이동
-		break;
-	case DOWN:						//아래쪽 키이면
-		y += 1;						//아래쪽으로 한 칸 이동
-		break;
-	case ENTER:						//엔터키이면
-		if (plate[y][x / 3] != '.')			//좌표가 비어있지 않으면
-			return 1;						//1을 반환해 오류 메세지 출력 트리거 활성화
-		else								//비어있으면
+		gotoxy(0, 22);							//(0, 22)지점으로 이동해서
+		printf("좌표 : %-2d %-2d", x / 3, y);	//출력
+
+		ShowCursorPos(x, y, plate[y][x / 3], 1);
+
+		clt = _getch();					//키보드로 입력을 받음
+		if (clt == -32 || clt == 0)		//입력받은 키보드가 특수 키코드이면
+			clt = _getch();				//한번 더 읽어야 제대로 된 값 받음
+
+		ShowCursorPos(x, y, plate[y][x / 3], 0);
+
+		switch (clt)
 		{
-			plate[y][x / 3] = plate[0][0];  //돌을 놓음
-			gotoxy(x + 2, y);				//돌을 놓은 곳 한칸 앞으로 이동
-			putchar('\b');					//그 칸을 지움
-			if (plate[0][0] == 'O')			//'O'의 턴이었으면
-				SetConsoleTextAttribute(hnd, 0x09);//배경과 글자색 변경(검정, 파랑)
-			else							//'X'의 턴이었으면
-				SetConsoleTextAttribute(hnd, 0x0C);//배경과 글자색 변경(검정, 빨강)
-			putchar(plate[0][0]);			//돌 출력
-
-			SetConsoleTextAttribute(hnd, 0x0F);//배경과 글자색 복구(검정, 하양)
-		}
-
-		if (WinOrNot(plate, y, x / 3))		//만약 게임이 끝났으면
-		{
-			gotoxy(0, 20);
-			Win(plate[0][0]);				//Win() 실행
-			return -1;						//-1 반환
-		}
-		else								//끝나지 않았으면
-		{
-			return 0;						//0 반환
-		}
-	}
-
-		
-	if (x < 1*3)							//커서가 왼쪽 경계를 넘어가면
-		x = 19 * 3;							//오른쪽 끝으로 이동
-	else if (x > 19 * 3)					//커서가 오른쪽 경계를 넘어가면
-		x = 1 * 3;							//왼쪽 끝으로 이동
-	if (y < 1)								//커서가 위쪽 경계를 넘어가면
-		y = 19;								//아래쪽 끝으로 이동
-	else if (y > 19)						//커서가 아래쪽 경계를 넘어가면
-		y = 1;								//위쪽 끝으로 이동
-}
-}
-int main(void)
-{
-	char plate[20][20];					//오목판 배열
-	int x, y;
-	int trig = 0;
-
-	for(x=1; x<size; x++)				//1부터 19까지 
-		plate[0][x] = x;				//제일 윗줄에 1~19 순서대로 대입
-	for(y=1; y<size; y++)				//1부터 19까지
-		plate[y][0] = y;				//제일 왼쪽에 1~19 순서대로 대입
-	for(x=1; x<size; x++)
-		for(y=1; y<size; y++)
-			plate[y][x] = '.';			//나머지는 다 .으로 채움
-
-	plate[0][0] = 'O';					//턴은 O 먼저 시작
-	ShowPlate(plate);					//오목판을 보여줌
-	gotoxy(10 * 3 + 1, 10);				//(10, 10) 지점으로 커서 이동
-	while(1)
-	{
-		trig = move(plate);				//트리거에 move()가 반환한 값 저장
-		clearStatusBar();
-
-		switch (trig)
-		{
-		case 1:							//오류 메세지 출력 트리거가 활성화돼있으면
-			gotoxy(0, 21);
-			printf("잘못된 좌표 입력, 턴 넘어감 \n");//오류 메세지 출력
-			trig = 0;					//트리거 비활성화
+		case LEFT:						//왼쪽키이면
+			x -= 3;						//왼쪽으로 세 칸(한 블럭)이동
 			break;
-		case -1:						//-1이 반환되었으면
-			return 0;					//종료
+		case RIGHT:						//오른쪽 키이면
+			x += 3;						//오른쪽으로 세 칸(한 블럭)이동
+			break;
+		case UP:						//위쪽 키이면
+			y -= 1;						//위로 한 칸 이동
+			break;
+		case DOWN:						//아래쪽 키이면
+			y += 1;						//아래쪽으로 한 칸 이동
+			break;
+		case ENTER:						//엔터키이면
+			if (plate[y][x / 3] != '.')			//좌표가 비어있지 않으면
+				return 1;						//1을 반환해 오류 메세지 출력 트리거 활성화
+			else								//비어있으면
+			{
+				plate[y][x / 3] = plate[0][0];  //돌을 놓음
+				ShowCursorPos(x, y, plate[y][x / 3], 0);
+			}
+
+			if (WinOrNot(plate, y, x / 3))		//만약 게임이 끝났으면
+			{
+				gotoxy(0, 20);
+				Win(plate[0][0]);				//Win() 실행
+				return -1;						//-1 반환
+			}
+			else								//끝나지 않았으면
+			{
+				return 0;						//0 반환
+			}
 		}
-		TurnChange(&plate[0][0]);		//턴 바꿈
+
+		if (x < 1 * 3)							//커서가 왼쪽 경계를 넘어가면
+			x = 19 * 3;							//오른쪽 끝으로 이동
+		else if (x > 19 * 3)					//커서가 오른쪽 경계를 넘어가면
+			x = 1 * 3;							//왼쪽 끝으로 이동
+		if (y < 1)								//커서가 위쪽 경계를 넘어가면
+			y = 19;								//아래쪽 끝으로 이동
+		else if (y > 19)						//커서가 아래쪽 경계를 넘어가면
+			y = 1;								//위쪽 끝으로 이동
 	}
 }
